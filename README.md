@@ -1,8 +1,8 @@
 # Religiosity-and-gender-bias-structure-social-networks
-Code to accompany the paper on ‘Religiosity-and-gender-bias-structure-social-networks’ by Erhao Ge et al.
+Code Accompanying the Paper Titled 'Religiosity and Gender Bias in Social Network Structures' by Erhao Ge et al.
 
-This includes the code to replicate the tables and figures conducted in the paper.
+This repository contains the code required to replicate the tables and figures presented in the paper.
 
-The relationship data files can be download here. The religiosity data can be accessed via resonable requestment.
+Data for edge-level attributes and node-level attributes can be downloaded.
 
-Questions should be directed to ucsaege@ucl.ac.uk
+For any inquiries, please contact ucsaege@ucl.ac.uk.
