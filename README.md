@@ -1,5 +1,5 @@
 # Religiosity-and-gender-bias-structure-social-networks
-Code & data Accompanying the Paper Titled 'Religiosity and Gender Bias in Social Network Structures' by Erhao Ge et al.
+Code and Data Accompanying the Paper Titled 'Religiosity and Gender Bias in Social Network Structures' by Erhao Ge et al., Published in Evolutionary Human Science.
 
 This repository contains the R code and Python code required to replicate the tables and figures presented in the paper, and rds files required to run the R codes.
 
