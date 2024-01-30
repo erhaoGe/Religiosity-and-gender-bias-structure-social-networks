@@ -119,118 +119,81 @@ Edgelist_socialsupport %>%
     axis.title.x = element_text(size = 15),
     axis.title.y = element_text(size = 15))
 
+
 ##### Figure 3
-## ----------------------------------------------------------------------------------
-networkcapital %>% 
-  rowwise() %>% 
-  mutate(All = sum(c_across(Emotionally:Suggestion))) %>% 
-  ungroup() %>%
-  mutate(Gender = as.factor(Gender)) %>% 
-  mutate(Gender =  factor(Gender,
-                          levels = c("Male","Female"))) %>%
-  ggplot(aes(x = Fiveyearscore,
-             y = All, 
-             color = Gender,
-             fill = Gender ))+
-  geom_point()+
-  scale_color_manual(values = c( "#6ca6cd","#db7093"))+
-  scale_fill_manual(values = c( "#6ca6cd","#db7093"))+
-  geom_smooth(colour ="black",method = "loess",span =0.7,
-              alpha = 0.2) +
-  stat_cor(aes(color = Gender), 
-           cor.coef.name = "rho",
-           method = "spearman", 
-           label.x = c(0,50), 
-           label.y = 86,
-           size = 3,
-           show.legend = F) +
-  xlab("Pilgrimage score") +
-  ylab("In-degree value") +
-  theme(
-    legend.position="bottom",
-    axis.title.x = element_text(hjust = 0.5),
-    axis.title.y = element_text(hjust = 0.5))
+## (a) ----------------------------------------------------------------------------------
+  ml <- list()
+  ml[[1]] <- glm.nb( All ~ Age_cohort + Gender +
+                       Rank1 + Siblinginvillage + 
+                       Offspringinvillage,
+                     data = Personal_network)
+  
+  ml[[2]] <- glm.nb( All ~ Age_cohort + Gender +
+                       Rank1 + Siblinginvillage + 
+                       Offspringinvillage + 
+                       Fiveyearscore2 +
+                       DailyRegularscore2,
+                     data = Personal_network)
+  
+  ml[[3]] <- glm.nb( All ~ Age_cohort + Gender +
+                       Rank1 + Siblinginvillage + 
+                       Offspringinvillage +
+                       Fiveyearscore2+
+                       Gender*DailyRegularscore2,
+                     data = Personal_network)
+  
+  ml[[4]] <- glm.nb( All ~ Age_cohort + Gender +
+                       Rank1 + Siblinginvillage + 
+                       Offspringinvillage +
+                       Fiveyearscore2*Gender +
+                       DailyRegularscore2,
+                     data = Personal_network)
+
+raw <- ggpredict(ml[[4]],
+                 terms = c("Fiveyearscore2","Gender")) %>% 
+  attr(., "rawdata")
+
+std_dev <-  18.54487
+mean_value <- 12.02431 
 
 
-## ----------------------------------------------------------------------------------
-networkcapital2 %>% 
-  rowwise() %>% 
-  mutate(All = sum(c_across(Emotionally:Suggestion))) %>% 
-  ungroup() %>%
-  mutate(Gender = as.factor(Gender)) %>% 
-  mutate(Gender =  factor(Gender,levels = c("Male","Female"))) %>%
-  ggplot( aes(x= as.factor(DailyRegularscore2), 
-              y=All)) +
-  geom_boxplot() +
-  scale_x_discrete(labels = c("No","Yes")) +
-  facet_wrap(. ~ Gender,  scales = "free" ) +
-  xlab("Daily practice") +
-  ylab("In-degree value") +
-  stat_summary(fun.y = mean,
-               color = "red", 
-               geom = "point", shape = 18, size = 2,
-               show.legend = FALSE) +
-  stat_compare_means(aes(group = DailyRegularscore2),
-                     method = "wilcox.test",
-                     label = "p.format",
-                     label.x = 1.4,
-                     label.y = -0.9,
-                     size = 3) +
-  theme(
-    axis.text.x = element_text(size = 12),
-    axis.text.y = element_text(size = 12),
-    axis.title.x = element_text(size = 14,hjust = 0.5),
-    axis.title.y = element_text(size = 14,hjust = 0.5),
-    strip.text = element_text(size = 14,hjust = 0.5),
-    strip.background = element_rect(colour = "black",size = .1))
+original_values <- c(0,50,100,150)
+z_scores <- (original_values - mean_value) / std_dev
 
-##### Figure 4
-## ----------------------------------------------------------------------------------
-
-ml <- list()
-ml[[1]] <- glm( All ~ Age_cohort + Gender +
-                  Rank1 + Siblinginvillage + 
-                  Offspringinvillage,
-                family = "poisson",
-                data = Personal_network)
-
-ml[[2]] <- glm( All ~ Age_cohort + Gender +
-                  Rank1 + Siblinginvillage + 
-                  Offspringinvillage + 
-                  Fiveyearscore2 +
-                  DailyRegularscore2,
-                family = "poisson",
-                data = Personal_network)
-
-ml[[3]] <- glm( All ~ Age_cohort + Gender +
-                  Rank1 + Siblinginvillage + 
-                  Offspringinvillage +
-                  Fiveyearscore2+
-                  Gender*DailyRegularscore2,
-                family = "poisson",
-                data = Personal_network)
-
-ml[[4]] <- glm( All ~ Age_cohort + Gender +
-                  Rank1 + Siblinginvillage + 
-                  Offspringinvillage +
-                  Fiveyearscore2*Gender +
-                  DailyRegularscore2,
-                family = "poisson",
-                data = Personal_network)
-
-ggeffects::ggeffect(ml[[4]],
-                    terms = c("Fiveyearscore2","Gender")) %>% 
+ggeffect(ml[[4]],
+         terms = c("Fiveyearscore2 [-1:8,by = 0.1]","Gender")) %>% 
   plot(ci.style = "ribbon",
        limit.range = T) +
+  scale_x_continuous(
+    trans = scales::trans_new(
+      "z_score_adjusted",
+      transform = function(x) (x * std_dev) + mean_value,
+      inverse = function(x) (x - mean_value)/std_dev),
+    breaks = z_scores,  
+    labels = original_values) + 
+  
+  scale_y_continuous(breaks = c(0,25,50,75),  
+                     labels = c(0,25,50,75))+
+  geom_point(aes(x = x,
+                 y = response, 
+                 color = group,
+                 fill = group ),data = raw) +
+  
   scale_color_manual(values = c( "#db7093","#6ca6cd"))+
   scale_fill_manual(values = c( "#db7093","#6ca6cd"))+
-  xlab("Pilgrimage score (standardized)") +
-  ylab("Predicted In-degree value") +
+  
+  xlab("Pilgrimage score") +
+  ylab("Predicted In-degree value") + 
   theme(
     title = element_blank(),
     legend.position="bottom",
     axis.title.x = element_text(hjust = 0.5),
-    axis.title.y = element_text(hjust = 0.5))
+    axis.title.y = element_text(hjust = 0.5)) +
+  theme(panel.grid.minor = element_blank())
+
+ggsave("Figure_3(a).tiff",width = 8, height = 6, dpi = 300)
+
+# (b) ------------------------------------------------
 
 ggeffects::ggeffect(ml[[3]],
                     terms = c("DailyRegularscore2","Gender")) %>%
@@ -246,6 +209,8 @@ ggeffects::ggeffect(ml[[3]],
     legend.position="bottom",
     axis.title.x = element_text(hjust = 0.5),
     axis.title.y = element_text(hjust = 0.5))
+
+ggsave("Figure_3(b).tiff",width = 8, height = 6, dpi = 300)
 
 ##### Figure S1
 ## ----------------------------------------------------------------------------------
@@ -439,3 +404,69 @@ networkcapital2 %>%
     strip.text = element_text(size = 10,hjust = 0.5),
     strip.background = element_rect(colour = "black",size = .1))
 
+##### Figure S10
+## ----------------------------------------------------------------------------------
+networkcapital %>% 
+  rowwise() %>% 
+  mutate(All = sum(c_across(Emotionally:Suggestion))) %>% 
+  ungroup() %>%
+  mutate(Gender = as.factor(Gender)) %>% 
+  mutate(Gender =  factor(Gender,
+                          levels = c("Male","Female"))) %>%
+  mutate(Fiveyearscore_log = log(Fiveyearscore + 1))  %>%
+  ggplot(aes(x = Fiveyearscore_log,
+             y = All, 
+             color = Gender,
+             fill = Gender ))+
+  geom_point()+
+  scale_color_manual(values = c( "#6ca6cd","#db7093"))+
+  scale_fill_manual(values = c( "#6ca6cd","#db7093"))+
+  xlab("Log-transformed pilgrimage score") +
+  ylab("In-degree value") +
+  theme(
+    legend.position="bottom",
+    axis.title.x = element_text(hjust = 0.5),
+    axis.title.y = element_text(hjust = 0.5)) +
+stat_cor(aes(color = Gender), 
+         cor.coef.name = "rho",
+         method = "spearman", 
+         label.x = c(0,3), 
+         label.y = 86,
+         size = 3,
+         show.legend = F) 
+
+ggsave("Figure_S10(a).tiff",width = 8, height = 6, dpi = 300)
+
+## ----------------------------------------------------------------------------------
+networkcapital2 %>% 
+  rowwise() %>% 
+  mutate(All = sum(c_across(Emotionally:Suggestion))) %>% 
+  ungroup() %>%
+  mutate(Gender = as.factor(Gender)) %>% 
+  mutate(Gender =  factor(Gender,levels = c("Male","Female"))) %>%
+  ggplot( aes(x= as.factor(DailyRegularscore2), 
+              y=All)) +
+  geom_boxplot() +
+  scale_x_discrete(labels = c("No","Yes")) +
+  facet_wrap(. ~ Gender,  scales = "free" ) +
+  xlab("Daily practice") +
+  ylab("In-degree value") +
+  stat_summary(fun.y = mean,
+               color = "red", 
+               geom = "point", shape = 18, size = 2,
+               show.legend = FALSE) +
+  stat_compare_means(aes(group = DailyRegularscore2),
+                     method = "wilcox.test",
+                     label = "p.format",
+                     label.x = 1.4,
+                     label.y = -0.9,
+                     size = 3) +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    axis.title.x = element_text(size = 14,hjust = 0.5),
+    axis.title.y = element_text(size = 14,hjust = 0.5),
+    strip.text = element_text(size = 14,hjust = 0.5),
+    strip.background = element_rect(colour = "black",size = .1))
+
+ggsave("Figure_S10(b).tiff",width = 8, height = 6, dpi = 300)
